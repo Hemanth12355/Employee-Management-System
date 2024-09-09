@@ -1,0 +1,190 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import SideBar from '../../components/Side Bar';
+import Table from '../../components/Table';
+import Calendar from 'react-calendar';
+import axios from 'axios';
+
+import data from '../../assets/data.json';
+import 'react-calendar/dist/Calendar.css';
+import './styles.css';
+
+const getEmployeesData = (employees) => {
+    return employees.map(({ _id, createdAt, updatedAt, isActive, ...rest }) => rest);
+};
+
+const EmployeeDashboard = () => {
+  const [sideBarData, setSideBarData] = useState('Dashboard');
+  const location = useLocation();
+  const loggedInUser = location.state?.loggedInUser;
+  const [timer, setTimer] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [isToday, setIsToday] = useState(false);
+  const timerRef = useRef(null);
+  const [date, setDate] = useState(new Date());
+  const [attendance, setAttendance] = useState([]);
+  const [loginTime, setLoginTime] = useState(null);
+
+  const handleDateChange = (selectedDate) => {
+    const today = new Date();
+    today.setDate(today.getDate() - 1);
+    const todayStr = today.toISOString().split('T')[0];
+    const selectedDateStr = selectedDate.toISOString().split('T')[0];
+    setIsToday(selectedDateStr === todayStr);
+    setDate(selectedDate);
+  };
+
+  const setDataFromSideBar = (data) => {
+    setSideBarData(data);
+  }
+
+  useEffect(() => {
+    setSideBarData('Dashboard');
+    return () => {
+      setSideBarData('Dashboard');
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(`http://192.168.0.111:8080/employe/getEmpDetails/${loggedInUser.employeId}`);
+        console.log('Employee details:', response.data);
+        setEmployees(response.data.logs || []); // Use response.data.logs instead of response.data.logs1
+      } catch (error) {
+        console.error('Error fetching employee details:', error);
+      }
+    }
+    fetchData();
+  }, [loggedInUser.employeId]);
+
+  useEffect(() => {
+    if (isRunning) {
+      timerRef.current = setInterval(() => {
+        setTimer((prevTime) => prevTime + 1);
+      }, 1000);
+    } else if (!isRunning && timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    return () => clearInterval(timerRef.current);
+  }, [isRunning]);
+
+  const startTimer = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const existingAttendance = attendance.find(entry => entry.date === today);
+    if (existingAttendance && existingAttendance.loginTime) {
+      alert('You have already logged in today.');
+      return;
+    }
+    setIsRunning(true);
+    const currentLoginTime = new Date().toLocaleTimeString();
+    setLoginTime(currentLoginTime);
+    setAttendance((prevAttendance) => [...prevAttendance, { date: today, loginTime: currentLoginTime, logoutTime: null }]);
+
+    // Send punch in to the database
+    try {
+      console.log(loggedInUser);
+      const response = await axios.put(`http://192.168.0.111:8080/employe/logintTime/${loggedInUser.employeId
+      }`);
+      console.log(response.data);
+      
+      console.log('Punch in recorded:', response.data);
+    } catch (error) {
+      console.error('Error recording punch in:', error);
+      // Handle error (e.g., show error message to user)
+    }
+  };
+
+  const stopTimer = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const existingAttendance = attendance.find(entry => entry.date === today);
+    if (existingAttendance && !existingAttendance.loginTime) {
+      alert('You have not logged in today.');
+      return;
+    }
+    setIsRunning(false);
+    const logoutTime = new Date().toLocaleTimeString();
+    setAttendance((prevAttendance) => {
+      const updatedAttendance = [...prevAttendance];
+      updatedAttendance[updatedAttendance.length - 1].logoutTime = logoutTime;
+      return updatedAttendance;
+    });
+
+    // Send punch out to the database
+    try {
+      const response = await axios.put(`http://192.168.0.111:8080/employe/logout/${loggedInUser.employeId}`);
+      console.log('Punch out recorded:', response.data);
+    } catch (error) {
+      console.error('Error recording punch out:', error);
+      // Handle error (e.g., show error message to user)
+    }
+
+    setTimer(0);
+    setLoginTime(null);
+  };
+
+  const formatTime = (seconds) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs}h ${mins}m ${secs}s`;
+  };
+
+  const tileDisabled = ({ date, view }) => {
+    if (view === 'month') {
+      const today = new Date();
+      today.setDate(today.getDate() - 1);
+      const todayStr = today.toISOString().split('T')[0];
+      const dateStr = date.toISOString().split('T')[0];
+      return dateStr !== todayStr;
+    }
+    return false;
+  };
+
+  const columns = [
+    { Header: 'Login Date', accessor: 'loginDate' },
+    { Header: 'Login Time', accessor: 'loginTime' },
+    { Header: 'Logout Time', accessor: 'logoutTime' },
+    { Header: 'Time Difference', accessor: 'timeDifference' }
+  ];
+
+  return (
+    <div className="employee-dashboard">
+      <SideBar tabs={['Dashboard', 'Employees List']} fromSideBar={setDataFromSideBar} />
+      <div className="main-content">
+        {sideBarData === 'Dashboard' && (
+          <>
+            <h1 className='welcome-message'>Welcome, {loggedInUser?.name || `${loggedInUser?.firstName} ${loggedInUser?.lastName}`}</h1>
+             <div className='dashboard-timer-container'>
+             <div className='calender'>
+                <Calendar onChange={handleDateChange} value={date} tileDisabled={tileDisabled} />
+              </div>
+              <div className="timer-container">
+                <h3>Timer: {formatTime(timer)}</h3>
+                <button className='timer-buttons' onClick={startTimer}>Punch In</button>
+                <button className='timer-buttons' onClick={stopTimer}>Punch Out</button>
+              </div>
+              </div>
+          </>
+        )}
+        {sideBarData === 'Employees List' && (
+          <div className="list">
+            <h2>Employee Attendance </h2>
+            <Table
+              data={employees}
+              columns={columns}
+            />
+            {employees.length === 0 && (
+              <div className="empty-table-message">No attendance data available.</div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default EmployeeDashboard;

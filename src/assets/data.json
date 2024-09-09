@@ -1,0 +1,120 @@
+{
+    "users": [
+      {
+        "_id": "ObjectId(5f8a7b2c3d4e5f6a7b8c9d0e)",
+        "username": "johndoe123",
+        "email": "superadmin@gmail.com",
+        "password": "SuperAdmin123",
+        "name":"Jane Smith",
+        "role": "Super Admin",
+        "companyId": null,
+        "createdAt": "2023-05-15T10:30:00Z",
+        "updatedAt": "2023-05-16T14:45:00Z",
+        "isActive": true
+      },
+      {
+        "_id": "ObjectId(6a9b8c7d6e5f4g3h2i1j0k)",
+        "username": "janesmith456",
+        "email": "admin@example.com",
+        "password": "admin123",
+        "name": "Jane Smith",
+        "role": "Admin",
+        "companyId": "1a2b3c4d5e6f7g8h9i0j",
+        "createdAt": "2023-05-17T09:15:00Z",
+        "updatedAt": "2023-05-18T11:30:00Z",
+        "isActive": true
+      },
+      {
+        "_id": "ObjectId(6a9b8c7d6e5f4g3h2i1j1k)",
+        "username": "janesmith456",
+        "email": "employee@example.com",
+        "password": "employee123",
+        "name":"Jane Smith",
+        "role": "employee",
+        "companyId": "1a2b3c4d5e6f7g8h9i0j",
+        "createdAt": "2023-05-17T09:15:00Z",
+        "updatedAt": "2023-05-18T11:30:00Z",
+        "isActive": true
+      },
+      {
+        "_id": "ObjectId(7b8c9d0e1f2g3h4i5j6k7l)",
+        "username": "bobwilson789",
+        "email": "bobwilson@example.com",
+        "password": "employee123",
+        "name":"Bob Wilson",
+        "role": "employee",
+        "companyId": "3c4d5e6f7g8h9i0j1k2l",
+        "createdAt": "2023-05-19T14:00:00Z",
+        "updatedAt": "2023-05-20T16:45:00Z",
+        "isActive": true
+      }
+    ],
+    "company": [
+        {
+          "_id": "ObjectId(1a2b3c4d5e6f7g8h9i0j)",
+          "companyId": "1a2b3c4d5e6f7g8h9i0j",
+          "company": "Capgemini",
+          "email": "capgemini@gmail.com",
+          "contact": "9876543210",
+          "locationOfOrganisation": "Hyderabad",
+          "noOfEmp": 1000,
+          "country": "India",
+          "isDeleted": false
+        },
+        {
+          "_id": "ObjectId(2b3c4d5e6f7g8h9i0j1k)",
+          "companyId": "2b3c4d5e6f7g8h9i0j1k",
+          "company": "Accenture",
+          "email": "accenture@gmail.com",
+          "contact": "8765432109",
+          "locationOfOrganisation": "Bangalore",
+          "noOfEmp": 1500,
+          "country": "India",
+          "isDeleted": false
+        },
+        {
+          "_id": "ObjectId(3c4d5e6f7g8h9i0j1k2l)",
+          "companyId": "3c4d5e6f7g8h9i0j1k2l",
+          "company": "Infosys",
+          "email": "infosys@gmail.com",
+          "contact": "7654321098",
+          "locationOfOrganisation": "Pune",
+          "noOfEmp": 2000,
+          "country": "India",
+          "isDeleted": false
+        }
+    ],
+    "employee_Attendance": [
+      {
+        "_id": "ObjectId('66d00ce265cfdb025aad6461')",
+        "employeId": "janesmith456",
+        "loginTime": "11:39:30 am",
+        "logutTime": "11:39:34 am",
+        "loginDate": "2024-08-28T18:30:00.000+00:00",
+        "logs": {
+          "29/08/2024": "0:0:4"
+        }
+      },
+      {
+        "_id": "ObjectId('66d00ce265cfdb025aad6462')",
+        "employeId": "johndoe123",
+        "loginTime": "09:00:00 am",
+        "logutTime": "05:30:00 pm",
+        "loginDate": "2024-08-29T18:30:00.000+00:00",
+        "logs": {
+          "30/08/2024": "8:30:0"
+        }
+      },
+      {
+        "_id": "ObjectId('66d00ce265cfdb025aad6463')",
+        "employeId": "bobwilson789",
+        "loginTime": "08:45:00 am",
+        "logutTime": "06:15:00 pm",
+        "loginDate": "2024-08-30T18:30:00.000+00:00",
+        "logs": {
+          "31/08/2024": "9:30:0"
+        }
+      }
+    ]
+  }
+  

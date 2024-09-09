@@ -1,0 +1,54 @@
+/* Admin Dashboard Styles */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.admin-dashboard {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+}
+.admin
+.header {
+  grid-area: header;
+  background-color: #333;
+  color: #fff;
+  padding: 1rem;
+}
+
+
+
+.main-content {
+  grid-area: main;
+  padding: 1rem;
+  width: 82%;
+}
+
+/* Responsive styles */
+@media screen and (max-width: 768px) {
+  .admin-dashboard {
+    grid-template-areas:
+      "header"
+      "sidebar"
+      "main";
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .sidebar.active {
+    display: block;
+  }
+}

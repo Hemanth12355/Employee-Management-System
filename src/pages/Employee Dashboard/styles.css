@@ -1,0 +1,122 @@
+.employee-dashboard {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+}
+.welcome-message {
+
+  width: 100%;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.employee-dashboard .main-content {
+  background-color: white;
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+
+}
+
+.dashboard-timer-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+.calender {
+  width: 350px;
+
+}
+.timer-container {
+  width: calc(100% - 350px);
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.timer-container h3 {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.timer-buttons {
+  display: flex;
+  gap: 10px;
+  
+}
+
+.timer-buttons {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 2px 2px 10px 0 rgba(43, 20, 20, 0.1);
+  background-color: #007bff;
+  color: white;
+}
+.timer-buttons:hover {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 2px 2px 10px 0 rgba(43, 20, 20, 0.1);
+  background-color: #007bff;
+  color: black;
+}
+
+@media (max-width: 768px) {
+  .timer-container {
+    width: 100%;
+  }
+
+  .timer-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .timer-buttons button {
+    width: 100%;
+  }
+}
+
+.attendence-list {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.attendence-list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.attendence-list th,
+.attendence-list td {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+@media (max-width: 768px) {
+  .dashboard-timer-container {
+    flex-direction: column;
+  }
+
+  .calender,
+  .timer-container {
+    width: 100%;
+  }
+
+  .attendence-list {
+    overflow-x: auto;
+  }
+
+  .attendence-list table {
+    min-width: 300px;
+  }
+}
