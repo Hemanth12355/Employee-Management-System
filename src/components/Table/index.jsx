@@ -1,46 +1,36 @@
 import React from 'react';
 import './styles.css'; // Assuming you have a styles.css for table styles
+import { FaEdit } from "react-icons/fa";
+import { MdDelete } from "react-icons/md";
 
-const Table = ({ data, onEdit, onDelete, setActions, onRowClick, dataTransform }) => {
-  const handleRowClick = (item, index) => {
-    if (onRowClick) {
-      // Send the complete data of the particular row
-      onRowClick(data[index]);
-    }
-  };
-
-  // Apply the dataTransform function if provided
-  const transformedData = dataTransform ? dataTransform(data) : data;
-
+const Table = ({ data, columns, setActions, onRowClick, onEdit, onDelete }) => {
   return (
-    <div className='table'>
-      <table>
-        <thead>
-          <tr>
-            {transformedData.length > 0 && Object.keys(transformedData[0]).map((key) => (
-              <th key={key}>{key}</th>
-            ))}
-            {setActions && <th>Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {transformedData.map((item, index) => (
-            <tr key={index} onClick={() => handleRowClick(item, index)}>
-              {Object.values(item).map((value, idx) => (
-                <td key={idx}>{value}</td>
-              ))}
-              {setActions && (
-                <td className='action-buttons'>
-                  <button onClick={(e) => { e.stopPropagation(); onEdit(item); }}>Edit</button>
-                  <button onClick={(e) => { e.stopPropagation(); onDelete(item); }}>Delete</button>
-                </td>
-              )}
-            </tr>
+    <table>
+      <thead>
+        <tr>
+          {columns.map((column) => (
+            <th key={column.accessor}>{column.Header}</th>
           ))}
-        </tbody>
-      </table>
-    </div>
+          {setActions && <th>Actions</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((item, index) => (
+          <tr key={index} onClick={() => onRowClick && onRowClick(item)}>
+            {columns.map((column) => (
+              <td key={column.accessor}>{item[column.accessor]}</td>
+            ))}
+            {setActions && (
+              <td className='action-buttons'>
+                <button  onClick={(e) => { e.stopPropagation(); onEdit(item); }}><FaEdit /></button>
+                <button onClick={(e) => { e.stopPropagation(); onDelete(item); }}><MdDelete /></button>
+              </td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
-}
+};
 
 export default Table;

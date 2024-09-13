@@ -5,7 +5,13 @@ import SideBar from '../../components/Side Bar';
 import data from '../../assets/data.json';
 import Table from '../../components/Table';
 import axios from 'axios';
+import EditForm from '../../components/EditForm';
 
+const images = {
+    accenture: require('../../assets/pngwing.com.png'),
+    wipro: require('../../assets/wipro.png'),
+    sira: require('../../assets/Group.png'),
+}
 const displayUsersData = (users) => {
     if (!Array.isArray(users)) {
         console.error('users is not an array:', users);
@@ -30,6 +36,9 @@ const CompanyDashboard = () => {
     const [showModal, setShowModal] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [currentForm, setCurrentForm] = useState({});
+    const [editItem, setEditItem] = useState(null);
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
     const companyDetails = location.state?.companyDetails || null;
 
@@ -88,6 +97,7 @@ const CompanyDashboard = () => {
             name: '',
             email: '',
             password: '',
+            contact: '',
         });
     };
 
@@ -116,7 +126,7 @@ const CompanyDashboard = () => {
                     setUsers(users.map(user => user._id === currentForm._id ? response.data : user));
                 }
             } else {
-                if (sideBarData === 'Admins List') {
+                if (sideBarData === 'Dashboard') {
                     const response = await axios.post('http://192.168.0.111:8080/users/addAdmin', { ...currentForm,  companyId: company._id , company: company.company});
                     setAdmins([...admins, response.data]);
                 } else if (sideBarData === 'Users List') {
@@ -131,32 +141,64 @@ const CompanyDashboard = () => {
         }
     };
 
-    const handleDelete = async (item) => {
+    const handleDelete = (item) => {
+        setShowDeleteConfirmation(true);
+        setItemToDelete(item);
+    };
+    const confirmDelete = async () => {
         try {
-            await axios.put(`http://192.168.0.111:8080/users/deleteAdmin/${item._id}`);
+            await axios.put(`http://192.168.0.111:8080/users/deleteAdmin/${itemToDelete._id}`);
             if (sideBarData === 'Admins List') {
-                setAdmins(admins.filter(admin => admin._id !== item._id));
+                setAdmins(admins.filter(admin => admin._id !== itemToDelete._id));
             } else if (sideBarData === 'Users List') {
-                setUsers(users.filter(user => user._id !== item._id));
+                setUsers(users.filter(user => user._id !== itemToDelete._id));
             }
+            setShowDeleteConfirmation(false);
+            setItemToDelete(null);
         } catch (error) {
             console.error('Error deleting item:', error);
             // Handle error (e.g., show error message to user)
         }
     };
+    const cancelDelete = () => {
+        setShowDeleteConfirmation(false);
+        setItemToDelete(null);
+    };
+
+    const adminColumns = [
+        { Header: 'Name', accessor: 'name' },
+        { Header: 'Email', accessor: 'email' },
+        { Header: 'Company', accessor: 'company' },
+        { Header: 'Contact', accessor: 'contact' },
+    ];
+    const adminEditColumns = [
+        { Header: 'Name', accessor: 'name' },
+        { Header: 'Email', accessor: 'email' },
+        { Header: 'Company', accessor: 'company' },
+        { Header: 'Contact', accessor: 'contact' },
+    ];
+
+    const handleEdit = (item) => {
+        setEditItem(item);
+    };
+
+    const handleEditSubmit = async (updatedData) => {
+        try {
+            await axios.put(`http://192.168.0.111:8080/users/editAdmin/${updatedData._id}`, updatedData);
+            await fetchAdmins();
+            setEditItem(null);
+        } catch (error) {
+            console.error('Error updating admin:', error);
+        }
+    };
 
     return (
         <div className="company-dashboard">
-            <SideBar tabs={['Dashboard', 'Admins List']} fromSideBar={setDataFromSideBar} />
+            <SideBar tabs={['Dashboard']} fromSideBar={setDataFromSideBar} />
             <div className="main-content">
                 {sideBarData === 'Dashboard' && company && (
                     <>
                         <h2>Welcome to {company.company}</h2>
-                        {/* Display other company details here */}
-                    </>
-                )}
-                {sideBarData === 'Admins List' && (
-                    <>
                         <h2>Admins List</h2>
                         <div className="list">
                             <div className="addButton">
@@ -165,17 +207,24 @@ const CompanyDashboard = () => {
                             {admins.length > 0 ? (
                                 <Table 
                                     data={admins}
-                                    dataTransform={displayAdminsData}
+                                    columns={adminColumns}
                                     setActions={true}
-                                    onEdit={(item) => handleModalOpen(true, item)}
+                                    onEdit={handleEdit}
                                     onDelete={handleDelete}
                                 />
                             ) : (
                                 <p style={{ textAlign: 'center', fontSize: '1.5rem', color: 'gray' }}>No Admins</p>
                             )}
                         </div>
+                        {/* Display other company details here */}
                     </>
                 )}
+                {/* {sideBarData === 'Admins List' && (
+                    <>
+                      
+                    </>
+                )} */}
+               
 
             </div>
             {showModal && (
@@ -203,6 +252,31 @@ const CompanyDashboard = () => {
                                 ))}
                                 <button type="submit">{isEditMode ? 'Update' : 'Submit'}</button>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {editItem && (
+                <div className="modal">
+                    <div className="modal-content">
+                        <h2>Edit Admin</h2>
+                        <EditForm
+                            data={editItem}
+                            columns={adminEditColumns}
+                            onSubmit={handleEditSubmit}
+                            onCancel={() => setEditItem(null)}
+                        />
+                    </div>
+                </div>
+            )}
+              {showDeleteConfirmation && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <h2>Confirm Delete</h2>
+                        <p>Are you sure you want to delete?</p>
+                        <div className="modal-buttons">
+                            <button onClick={confirmDelete}>Delete</button>
+                            <button onClick={cancelDelete}>Cancel</button>
                         </div>
                     </div>
                 </div>

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './styles.css';
 import SideBar from '../../components/Side Bar';
 import Table from '../../components/Table';
 import data from '../../assets/data.json';
 import axios from 'axios';
+import EditForm from '../../components/EditForm';
+import { RiLogoutCircleLine } from "react-icons/ri";
 
 const getEmployeesData = (employees) => {
     if (!Array.isArray(employees)) {
@@ -21,6 +23,7 @@ const AdminDashboard = () => {
     const [employees, setEmployees] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
+    const navigate = useNavigate();
     const [currentEmployee, setCurrentEmployee] = useState({
         name: '',
         empRole: '',
@@ -28,6 +31,13 @@ const AdminDashboard = () => {
         email: '',
         password: ''
     });
+    const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [attendanceData, setAttendanceData] = useState([]);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [editItem, setEditItem] = useState(null);
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [employeeToDelete, setEmployeeToDelete] = useState(null);
 
     const setDataFromSideBar = (data) => {
         setSideBarData(data);
@@ -45,7 +55,15 @@ const AdminDashboard = () => {
         setEmployees(Array.isArray(data.users) ? data.users : []);
         fetchEmployees();   
     }, [loggedInUser]);
-
+    const handleLogout = async () => {
+        try {
+            const response = await axios.put(`http://192.168.0.111:8080/users/exit/${loggedInUser._id}`);
+            navigate('/');
+        } catch (error) {
+            console.error('Error during logout:', error);
+            alert('An error occurred during logout. Please try again.');
+        }
+    };
     const fetchEmployees = async () => {
         try {
             if (loggedInUser) {
@@ -116,41 +134,107 @@ const AdminDashboard = () => {
             // Handle error (e.g., show error message to user)
         }
     };
-
-    const handleDelete = async (employee) => {
+    const handleDelete = (employee) => {
+        setEmployeeToDelete(employee);
+        setShowDeleteConfirmation(true);
+    };
+    const confirmDelete = async () => {
         try {
-            await axios.put(`http://192.168.0.111:8080/users/deleteEmploye/${employee._id}`);
-            setEmployees(employees.filter(emp => emp._id !== employee._id));
+            await axios.put(`http://192.168.0.111:8080/users/deleteEmploye/${employeeToDelete._id}`);
+            setEmployees(employees.filter(emp => emp._id !== employeeToDelete._id));
+            setShowDeleteConfirmation(false);
+            setEmployeeToDelete(null);
         } catch (error) {
             console.error('Error deleting employee:', error);
             // Handle error (e.g., show error message to user)
         }
     };
+    const cancelDelete = () => {
+        setShowDeleteConfirmation(false);
+        setEmployeeToDelete(null);
+    };
+    const handleEmployeeClick = (employee) => {
+        console.log(employee);
+        navigate(`/employee`, { state: { loggedInUser: employee } });
+    }
+
+    const handleAttendanceModalOpen = async (employee) => {
+        setSelectedEmployee(employee);
+        setShowAttendanceModal(true);
+        await fetchAttendanceData(employee.employeId);
+    };
+
+    const handleAttendanceModalClose = () => {
+        setShowAttendanceModal(false);
+        setSelectedEmployee(null);
+        setAttendanceData([]);
+    };
+
+    const fetchAttendanceData = async (employeeId) => {
+        try {
+            const response = await axios.get(`http://192.168.0.111:8080/employe/getEmpDetails/${employeeId}`);
+            console.log(response.data);
+            setAttendanceData(response.data.logs || []);
+        } catch (error) {
+            console.error('Error fetching attendance data:', error);
+        }
+    };
+
+    const handleDateChange = (date) => {
+        setSelectedDate(date);
+    };
+
+    const employeeColumns = [
+        { Header: 'Name', accessor: 'name' },
+        { Header: 'Email', accessor: 'email' },
+        { Header: 'Role', accessor: 'empRole' },
+        { Header: 'Contact', accessor: 'contact' },
+    ];
+
+    const handleEdit = (item) => {
+        setEditItem(item);
+    };
+
+    const handleEditSubmit = async (updatedData) => {
+        try {
+            console.log(updatedData._id);
+            await axios.put(`http://192.168.0.111:8080/users/editEmploye/${updatedData._id}`, updatedData);
+            await fetchEmployees();
+            setEditItem(null);
+        } catch (error) {
+            console.error('Error updating employee:', error);
+        }
+    };
 
     return (
         <div className="admin-dashboard">
-            <SideBar tabs={['Dashboard', 'Employees List']} fromSideBar={setDataFromSideBar} />
+            <SideBar tabs={['Dashboard']} fromSideBar={setDataFromSideBar} />
             <div className="main-content">
                 {sideBarData === 'Dashboard' && (
                     <>
+                    <div className="logout-container">
+  <button className="logout-button" onClick={handleLogout}><RiLogoutCircleLine /></button>
+</div>
                         <h2>Welcome, {loggedInUser?.name || `${loggedInUser?.firstName} ${loggedInUser?.lastName}`}</h2>
                         {/* Add more dashboard content here */}
-                    </>
-                )}
-                {sideBarData === 'Employees List' && (
-                    <div className="list">
+                        <div className="list">
                         <div className="addButton">
                             <button onClick={() => handleModalOpen(false)}>Add Employee</button>
                         </div>
                         <Table 
                             data={employees}
-                            dataTransform={getEmployeesData}
+                            columns={employeeColumns}
+                            onRowClick={handleAttendanceModalOpen}
                             setActions={true}
-                            onEdit={(employee) => handleModalOpen(true, employee)}
+                            onEdit={handleEdit}
                             onDelete={handleDelete}
                         />
                     </div>
+                    </>
                 )}
+                {/* {sideBarData === 'Employees List' && (
+                  
+                )} */}
             </div>
             {showModal && (
                 <div className="modal-overlay" onClick={handleModalClose}>
@@ -183,6 +267,58 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             )}
+            {showAttendanceModal && (
+                <div className="modal-overlay" onClick={handleAttendanceModalClose}>
+                    <div className="modal-content attendance-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Attendance for {selectedEmployee?.name}</h2>
+                            <button className="close-button" onClick={handleAttendanceModalClose}>×</button>
+                        </div>
+                        <div className="modal-body">
+                           
+                            <div className="attendance-list">
+                                <h3>Attendance for {selectedDate.toDateString()}</h3>
+                                <Table
+                                    data={attendanceData}
+                                    columns={[
+                                        { Header: 'Login Date', accessor: 'loginDate' },
+                                        { Header: 'Login Time', accessor: 'loginTime' },
+                                        { Header: 'Logout Time', accessor: 'logoutTime' },
+                                        { Header: 'Time Difference', accessor: 'timeDifference'}
+                                    ]}
+                                />
+                               
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {editItem && (
+                <div className="modal">
+                    <div className="modal-content">
+                        <h2>Edit Employee</h2>
+                        <EditForm
+                            data={editItem}
+                            columns={employeeColumns}
+                            onSubmit={handleEditSubmit}
+                            onCancel={() => setEditItem(null)}
+                        />
+                    </div>
+                </div>
+            )}
+             {showDeleteConfirmation && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <h2>Confirm Delete</h2>
+                        <p>Are you sure you want to delete?</p>
+                        <div className="modal-buttons">
+                            <button onClick={confirmDelete}>Delete</button>
+                            <button onClick={cancelDelete}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
         </div>
     );
 };

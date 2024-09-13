@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SideBar from '../../components/Side Bar';
 import Table from '../../components/Table';
 import Calendar from 'react-calendar';
@@ -8,6 +8,7 @@ import axios from 'axios';
 import data from '../../assets/data.json';
 import 'react-calendar/dist/Calendar.css';
 import './styles.css';
+import { RiLogoutCircleLine } from "react-icons/ri";
 
 const getEmployeesData = (employees) => {
     return employees.map(({ _id, createdAt, updatedAt, isActive, ...rest }) => rest);
@@ -25,6 +26,18 @@ const EmployeeDashboard = () => {
   const [date, setDate] = useState(new Date());
   const [attendance, setAttendance] = useState([]);
   const [loginTime, setLoginTime] = useState(null);
+  const [timeDifference, setTimeDifference] = useState(null);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+        const response = await axios.put(`http://192.168.0.111:8080/users/exit/${loggedInUser._id}`);
+        navigate('/');
+    } catch (error) {
+        console.error('Error during logout:', error);
+        alert('An error occurred during logout. Please try again.');
+    }
+  };
 
   const handleDateChange = (selectedDate) => {
     const today = new Date();
@@ -51,13 +64,21 @@ const EmployeeDashboard = () => {
       try {
         const response = await axios.get(`http://192.168.0.111:8080/employe/getEmpDetails/${loggedInUser.employeId}`);
         console.log('Employee details:', response.data);
-        setEmployees(response.data.logs || []); // Use response.data.logs instead of response.data.logs1
+        const latestLog = response.data.logs[response.data.logs.length - 1];
+        const timeDifferenceInSeconds = convertTimeToSeconds(latestLog.timeDifference);
+        setTimer(timeDifferenceInSeconds);
+        setEmployees(response.data.logs || []);
       } catch (error) {
         console.error('Error fetching employee details:', error);
       }
     }
     fetchData();
   }, [loggedInUser.employeId]);
+
+  const convertTimeToSeconds = (timeString) => {
+    const [hours, minutes, seconds] = timeString.split(':').map(Number);
+    return hours * 3600 + minutes * 60 + seconds;
+  };
 
   useEffect(() => {
     if (isRunning) {
@@ -74,11 +95,6 @@ const EmployeeDashboard = () => {
 
   const startTimer = async () => {
     const today = new Date().toISOString().split('T')[0];
-    const existingAttendance = attendance.find(entry => entry.date === today);
-    if (existingAttendance && existingAttendance.loginTime) {
-      alert('You have already logged in today.');
-      return;
-    }
     setIsRunning(true);
     const currentLoginTime = new Date().toLocaleTimeString();
     setLoginTime(currentLoginTime);
@@ -87,10 +103,12 @@ const EmployeeDashboard = () => {
     // Send punch in to the database
     try {
       console.log(loggedInUser);
-      const response = await axios.put(`http://192.168.0.111:8080/employe/logintTime/${loggedInUser.employeId
-      }`);
+      const response = await axios.put(`http://192.168.0.111:8080/employe/logintTime/${loggedInUser.employeId}`);
+
       console.log(response.data);
-      
+      const latestLog = response.data.logs[response.data.logs.length - 1];
+      const timeDifferenceInSeconds = convertTimeToSeconds(latestLog.timeDifference);
+      setTimer(timeDifferenceInSeconds);
       console.log('Punch in recorded:', response.data);
     } catch (error) {
       console.error('Error recording punch in:', error);
@@ -121,9 +139,6 @@ const EmployeeDashboard = () => {
       console.error('Error recording punch out:', error);
       // Handle error (e.g., show error message to user)
     }
-
-    setTimer(0);
-    setLoginTime(null);
   };
 
   const formatTime = (seconds) => {
@@ -133,18 +148,18 @@ const EmployeeDashboard = () => {
     return `${hrs}h ${mins}m ${secs}s`;
   };
 
-  const tileDisabled = ({ date, view }) => {
-    if (view === 'month') {
-      const today = new Date();
-      today.setDate(today.getDate() - 1);
-      const todayStr = today.toISOString().split('T')[0];
-      const dateStr = date.toISOString().split('T')[0];
-      return dateStr !== todayStr;
-    }
-    return false;
-  };
+  // const tileDisabled = ({ date, view }) => {
+  //   if (view === 'month') {
+  //     const today = new Date();
+  //     today.setDate(today.getDate() - 1);
+  //     const todayStr = today.toISOString().split('T')[0];
+  //     const dateStr = date.toISOString().split('T')[0];
+  //     return dateStr !== todayStr;
+  //   }
+  //   return false;
+  // };
 
-  const columns = [
+  const attendanceColumns = [
     { Header: 'Login Date', accessor: 'loginDate' },
     { Header: 'Login Time', accessor: 'loginTime' },
     { Header: 'Logout Time', accessor: 'logoutTime' },
@@ -155,17 +170,25 @@ const EmployeeDashboard = () => {
     <div className="employee-dashboard">
       <SideBar tabs={['Dashboard', 'Employees List']} fromSideBar={setDataFromSideBar} />
       <div className="main-content">
+        <div className="header">
+          <h1 className='welcome-message'>Welcome, {loggedInUser?.name || `${loggedInUser?.firstName} ${loggedInUser?.lastName}`}</h1>
+        </div>
         {sideBarData === 'Dashboard' && (
           <>
-            <h1 className='welcome-message'>Welcome, {loggedInUser?.name || `${loggedInUser?.firstName} ${loggedInUser?.lastName}`}</h1>
+           <div className="logout-container">
+                        <button className="logout-button" onClick={handleLogout}><RiLogoutCircleLine /></button>
+                    </div>
              <div className='dashboard-timer-container'>
-             <div className='calender'>
-                <Calendar onChange={handleDateChange} value={date} tileDisabled={tileDisabled} />
-              </div>
               <div className="timer-container">
+             <div className='timer-buttons-container'>
+             <button className='timer-buttons' onClick={startTimer}>Punch In</button>
+             <button className='timer-buttons' onClick={stopTimer}>Punch Out</button>
+             </div>
                 <h3>Timer: {formatTime(timer)}</h3>
-                <button className='timer-buttons' onClick={startTimer}>Punch In</button>
-                <button className='timer-buttons' onClick={stopTimer}>Punch Out</button>
+              
+              </div>
+             <div className='calender'>
+                <Calendar onChange={handleDateChange} value={date}  />
               </div>
               </div>
           </>
@@ -175,7 +198,7 @@ const EmployeeDashboard = () => {
             <h2>Employee Attendance </h2>
             <Table
               data={employees}
-              columns={columns}
+              columns={attendanceColumns}
             />
             {employees.length === 0 && (
               <div className="empty-table-message">No attendance data available.</div>

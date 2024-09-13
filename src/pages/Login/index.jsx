@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './styles.css';
 import axios from 'axios';
+import { motion } from 'framer-motion';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -65,33 +66,76 @@ const LoginPage = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: -50 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        type: 'spring',
+        stiffness: 120,
+        damping: 10
+      }
+    }
+  };
+
+  const inputVariants = {
+    focus: { scale: 1.05 },
+    blur: { scale: 1 }
+  };
+
   return (
-    <div className="login-container">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <h2>Login</h2>
-        {error && <div className="error-message">{error}</div>}
-        <div className="form-group">
-          <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="password">Password:</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Login</button>
-      </form>
+    <div className="login-page-background">
+      <motion.div 
+        className="login-container"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <form className="login-form" onSubmit={handleSubmit}>
+          <motion.h2
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            Login
+          </motion.h2>
+          {error && <div className="error-message">{error}</div>}
+          <div className="form-group">
+            <label htmlFor="email">Email:</label>
+            <motion.input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              variants={inputVariants}
+              whileFocus="focus"
+              whileBlur="blur"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Password:</label>
+            <motion.input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              variants={inputVariants}
+              whileFocus="focus"
+              whileBlur="blur"
+            />
+          </div>
+          <motion.button 
+            type="submit"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            Login
+          </motion.button>
+        </form>
+      </motion.div>
     </div>
   );
 };

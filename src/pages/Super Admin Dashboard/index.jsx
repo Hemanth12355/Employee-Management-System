@@ -6,6 +6,8 @@ import Table from '../../components/Table';
 import axios from 'axios'; 
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import EditForm from '../../components/EditForm';
+import { RiLogoutCircleLine } from "react-icons/ri";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -45,20 +47,50 @@ const SuperAdminDashboard = () => {
         "companyId": ''
     });
     const [error, setError] = useState('');
+    const [editItem, setEditItem] = useState(null);
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
-    const setDataFromSideBar = (data) => {
-        setSideBarData(data);
-    }
+    const [admins, setAdmins] = useState([]);
+    const [employees, setEmployees] = useState([]);
+
+    const sidebarTabs = ['Dashboard', 'Companies List', 'Users List'];
+    const dropdownTabs = {
+        'Users List': ['Admins List', 'Employees List'],
+    };
+
+    const setDataFromSideBar = (tab, parentTab) => {
+        if (parentTab === 'Users List') {
+            if (tab === 'Admins List') {
+                setSideBarData(tab);
+                fetchAdmins();
+            } else if (tab === 'Employees List') {
+                setSideBarData(tab);
+                fetchEmployees();
+            }
+        } else {
+            setSideBarData(tab);
+        }
+    };
 
     useEffect(() => {
         setSideBarData('Dashboard');
         fetchCompanies();
-        fetchUsers();
+        fetchAdmins();
+        fetchEmployees();
         return () => {
             setSideBarData('Dashboard');
         }
     }, []);
-
+    const handleLogout = async () => {
+        try {
+            const response = await axios.put(`http://192.168.0.111:8080/users/exit/${loggedInUser._id}`);
+            navigate('/');
+        } catch (error) {
+            console.error('Error during logout:', error);
+            alert('An error occurred during logout. Please try again.');
+        }
+    };
     const fetchCompanies = async () => {
         try {
             const response = await axios.get('http://192.168.0.111:8080/project/allOrganizations');
@@ -78,6 +110,28 @@ const SuperAdminDashboard = () => {
         } catch (error) {
             console.error('Error fetching users:', error);
             setUsers([]);
+        }
+    };
+
+    const fetchAdmins = async () => {
+        try {
+            const response = await axios.get('http://192.168.0.111:8080/users/allAdmins/Admin');
+            console.log('Admins data fetched:', response.data);
+            setAdmins(Array.isArray(response.data) ? response.data : []);
+        } catch (error) {
+            console.error('Error fetching admins:', error);
+            setAdmins([]);
+        }
+    };
+
+    const fetchEmployees = async () => {
+        try {
+            const response = await axios.get('http://192.168.0.111:8080/users/allEmployes/User');
+            console.log('Employees data fetched:', response.data);
+            setEmployees(Array.isArray(response.data) ? response.data : []);
+        } catch (error) {
+            console.error('Error fetching employees:', error);
+            setEmployees([]);
         }
     };
 
@@ -111,19 +165,31 @@ const SuperAdminDashboard = () => {
     };
 
     const handleDelete = async (item) => {
+        setItemToDelete(item);
+        setShowDeleteConfirmation(true);
+    };
+
+    const confirmDelete = async () => {
         try {
             if (sideBarData === 'Companies List') {
-                await axios.put(`http://192.168.0.111:8080/project/delete/${item.company}`);
+                await axios.put(`http://192.168.0.111:8080/project/delete/${itemToDelete.company}`);
                 await fetchCompanies();
             } else if (sideBarData === 'Users List') {
-                await axios.delete(`http://192.168.0.111:8080/users/delete/${item._id}`);
+                await axios.delete(`http://192.168.0.111:8080/users/delete/${itemToDelete._id}`);
                 await fetchUsers();
             }
-            console.log('Delete:', item);
+            console.log('Delete:', itemToDelete);
+            setShowDeleteConfirmation(false);
+            setItemToDelete(null);
         } catch (error) {
             console.error('Error deleting data:', error);
             setError('Failed to delete. Please try again.');
         }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteConfirmation(false);
+        setItemToDelete(null);
     };
 
     const handleModalOpen = () => {
@@ -132,21 +198,19 @@ const SuperAdminDashboard = () => {
         setError('');
         if (sideBarData === 'Companies List') {
             setCompanyForm({
-
                 "company": "",
                 "email": "",
                 "contact": "",
                 "locationOfOrganization": "",
                 "noOfEmp": '',
                 "country": "",
-
             });
         } else if (sideBarData === 'Users List') {
             setUserForm({
                 "_id": '',
                 "username": '',
                 "email": '',
-                "password": '',
+                "password": '', 
                 "name": '',
                 "role": '',
                 "companyId": ''
@@ -170,14 +234,22 @@ const SuperAdminDashboard = () => {
     };
 
     const handleEdit = (item) => {
-        if (sideBarData === 'Companies List') {
-            setCompanyForm({ ...item });
-        } else if (sideBarData === 'Users List') {
-            setUserForm({ ...item });
+        setEditItem(item);
+    };
+
+    const handleEditSubmit = async (updatedData) => {
+        try {
+            if (sideBarData === 'Companies List') {
+                await axios.put(`http://192.168.0.111:8080/project/edit/${updatedData._id}`, updatedData);
+                await fetchCompanies();
+            } else if (sideBarData === 'Users List') {
+                await axios.put(`http://192.168.0.111:8080/users/edit/${updatedData._id}`, updatedData);
+                await fetchUsers();
+            }
+            setEditItem(null);
+        } catch (error) {
+            console.error('Error updating item:', error);
         }
-        setIsEditMode(true);
-        setShowModal(true);
-        setError('');
     };
 
     const handleSubmit = async (event) => {
@@ -208,8 +280,8 @@ const SuperAdminDashboard = () => {
     };
 
     const totalCompanies = companies.length;
-    const totalUsers = users.length;
-
+    const totalAdmins = admins.length;
+    const totalEmployees = employees.length;
     const pieChartData = {
         labels: Array.isArray(companies) ? companies.map(company => company.company) : [],
         datasets: [
@@ -251,21 +323,48 @@ const SuperAdminDashboard = () => {
         }
     };
 
+    const companyColumns = [
+        { Header: 'Company', accessor: 'company' },
+        { Header: 'Email', accessor: 'email' },
+        { Header: 'Contact', accessor: 'contact' },
+        { Header: 'Location', accessor: 'locationOfOrganization' },
+        { Header: 'Employees', accessor: 'noOfEmp' },
+        { Header: 'Country', accessor: 'country' },
+    ];
+
+    const userColumns = [
+        { Header: 'Username', accessor: 'name' },
+        { Header: 'Email', accessor: 'email' },
+        { Header: 'Company', accessor: 'company' },
+        { Header: 'Role', accessor: 'role' },
+    ];
+
     return (
         <div className="super-admin-dashboard">
-            <SideBar tabs={['Dashboard', 'Companies List', 'Users List']} fromSideBar={setDataFromSideBar} />
+            <SideBar 
+                tabs={sidebarTabs} 
+                fromSideBar={setDataFromSideBar} 
+                dropdownTabs={dropdownTabs}
+            />
             <div className="main-content">
                 {sideBarData === 'Dashboard' && (
                     <>
+                   <div className="logout-container">
+                        <button className="logout-button" onClick={handleLogout}><RiLogoutCircleLine /></button>
+                    </div>
                         <h2>Welcome, Super Admin</h2>
                         <div className="dashboard-grid">
                             <div className="dashboard-item">
                                 <h3>Total Companies</h3>
-                                <p>{totalCompanies}</p>
+                                <p>{companies.length}</p>
                             </div>
                             <div className="dashboard-item">
-                                <h3>Total Users</h3>
-                                <p>{totalUsers}</p>
+                                <h3>Total Admins</h3>
+                                <p>{admins.length}</p>
+                            </div>
+                            <div className="dashboard-item">
+                                <h3>Total Employees</h3>
+                                <p>{employees.length}</p>
                             </div>
     
                         </div>
@@ -284,32 +383,39 @@ const SuperAdminDashboard = () => {
                                 </div>
                                 <Table 
                                     data={companies}
-                                    dataTransform={getCompaniesData}
+                                    columns={companyColumns}
                                     setActions={true} 
                                     onRowClick={handleCompanyClick}
-                                    onInsert={handleInsert}
-                                    onDelete={handleDelete}
                                     onEdit={handleEdit}
+                                    onDelete={handleDelete}
                                 />
                             </div>
                         </>
                     )
                 }
-                {
-                    sideBarData === 'Users List' && (
-                        <div className="list">
-
-                            <Table 
-                                data={users}
-                                dataTransform={getUsersData}
-                                setActions={false}
-                                onInsert={handleInsert}
-                                onDelete={handleDelete}
-                                onEdit={handleEdit}
-                            />
-                        </div>
-                    )
-                }
+              
+                {sideBarData === 'Admins List' && (
+                    <div className="list">
+                        <Table 
+                            data={admins}
+                            columns={userColumns}
+                            setActions={false}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                        />
+                    </div>
+                )}
+                {sideBarData === 'Employees List' && (
+                    <div className="list">
+                        <Table 
+                            data={employees}
+                            columns={userColumns}
+                            setActions={false}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                        />
+                    </div>
+                )}
             </div>
             {showModal && (
                 <div className="modal-overlay" onClick={handleModalClose}>
@@ -356,6 +462,31 @@ const SuperAdminDashboard = () => {
                                 )}
                                 <button type="submit">{isEditMode ? 'Update' : 'Submit'}</button>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {editItem && (
+                <div className="modal">
+                    <div className="modal-content">
+                        <h2>Edit {sideBarData === 'Companies List' ? 'Company' : 'User'}</h2>
+                        <EditForm
+                            data={editItem}
+                            columns={sideBarData === 'Companies List' ? companyColumns : userColumns}
+                            onSubmit={handleEditSubmit}
+                            onCancel={() => setEditItem(null)}
+                        />
+                    </div>
+                </div>
+            )}
+            {showDeleteConfirmation && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <h2>Confirm Delete</h2>
+                        <p>Are you sure you want to delete ?</p>
+                        <div className="modal-buttons">
+                            <button onClick={confirmDelete}>Delete</button>
+                            <button onClick={cancelDelete}>Cancel</button>
                         </div>
                     </div>
                 </div>
